@@ -1,0 +1,134 @@
+判断
+是否是SHUTDOWN状态
+
+
+
+判断
+是否大于规定的线程个数， 并增加线程个数
+
+
+
+
+RUNNING：接受新任务并且处理阻塞队列里的任务
+SHUTDOWN：拒绝新任务但是处理阻塞队列里的任务
+STOP：拒绝新任务并且抛弃阻塞队列里的任务同时会中断正在处理的任务
+TIDYING：所有任务都执行完（包含阻塞队列里面任务）当前线程池活动线程为0，将要调用terminated方法
+TERMINATED：终止状态。terminated方法调用完成以后的状态
+
+
+
+
+
+
+
+
+
+
+
+
+
+waitStatus = 0 为新建
+
+
+shouldParkAfterFailedAcquire(pred, node) {
+predNode.status = SIGNAL {return true;}
+predNode.status > 0(为CANCELLED状态) {node向前寻找到不是CANCELLED状态的节点 return false}
+设置predNode.status = SIGNAL  {return false}
+}
+
+
+
+
+
+unparkSuccessor(Node node)  {
+	将当前节点waitstatus设置为0
+	从tail节点, 向前查找waitstatus <= 0的节点
+	唤醒此节点后续节点
+}
+
+
+
+
+
+
+shouldParkAfterFailedAcquire{
+1. 当前节点的pre节点status = SIGNAL, return ture 阻塞此节点
+2. 当前节点的pre节点status > 0 为取消状态, 从pre.pre寻找 < 0的节点, 将此pre.next设置当前node（就是删除cancel的节点）
+	return false;
+3. 如果pre节点不为signal和cancel状态设置status为signal
+}
+
+
+
+SIGNAL  SIGNAL 
+header   N1
+
+
+
+
+
+
+
+
+
+
+ private int cursor; NONE 代表到头了, 没有下一个元素了
+
+
+
+
+
+
+
+
+
+
+
+
+伪共享 {
+1. 主内存和各级缓存,  都有缓存行(缓存多个字段值), 整个缓存行作为单位来处理
+2. head和tail在一个缓存行
+3. 一个进程仅仅更新了head， 其他cpu对应的head和tail的缓存行就实效了
+4. 另一个进程"仅仅想要读取tail"，就需要重新从主内存， 加载head和tail的缓存行
+
+
+	如果两个独立的线程同时写两个不同的值会更糟。因为每次线程对缓存行进行写操作时，
+每个内核都要把另一个内核上的缓存块无效掉并重新读取里面的数据。
+你基本上是遇到两个线程之间的写冲突了，尽管它们写入的是不同的变量。
+
+	这叫作“伪共享”（译注：可以理解为错误的共享），因为每次你访问head你也会得到tail，
+而且每次你访问tail，你也会得到head。这一切都在后台发生，并且没有任何编译警告会告诉你，
+你正在写一个并发访问效率很低的代码。
+
+}
+
+
+
+Disruptor {
+
+1. Sequencer
+
+2. Sequence
+
+3. SequenceBarrier
+
+4. ConsumerInfo 消费
+
+5. EventProcessor 消费线程
+
+
+6. SequenceBarrier
+
+
+注意如果RingBuffer里面数据超过了这个大小则会覆盖旧数据。这可能是一个风险，但Disruptor提供了检查RingBuffer是否写满的机制用于规避这个问题。而且根据maoyidao测试结果，写满的可能性不大，因为Disrutpor确实高效，除非你的消费线程太慢。
+
+}
+
+
+
+2 3 0 1
+
+1 vs 3
+
+ Software caused connection abort: recv failed
+http://192.168.0.29:8020/fileService/downloadPicture.do?fileName=/home/epaysch/sharefile/merAgentMgr/merfile/payRiskSign/org/5/20170925/912155739978465280//58104D75A470B7A97B0ACF3BDE6DC836.jpg
