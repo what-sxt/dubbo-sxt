@@ -2,8 +2,8 @@
 
 <pre>
 <font style="font-family:Microsoft YaHei">
-    1. 本地调试，customer<font style="font-style:italic">不希望</font> 配置url='dubbo//本机ip:端口号'.
-    2. 本地服务，<font style="font-style:italic">不希望</font> 暴露给其他调用者，需要配置register='false'.
+    1. 本地调试，customer<font style="font-style:italic"><b>不希望</b></font> 配置url='dubbo//本机ip:端口号'.
+    2. 本地服务，<font style="font-style:italic"><b>不希望</b></font> 暴露给其他调用者，需要配置register='false'.
     <font style="font-style:italic">3. 不小心提交到了测试环境，麻烦。</font>
 </font>
 </pre>
