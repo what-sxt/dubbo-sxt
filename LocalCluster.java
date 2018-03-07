@@ -238,49 +238,70 @@ public class LocalCluster implements Cluster {
 			if(cacheLocalProviders.isEmpty()) {
 				return super.list(invocation);
 			}
-			List<Invoker<T>> remotingInvokers = super.list(invocation);
-			Invoker<T> remotingInvoker = remotingInvokers.get(0);
-			String key = this.resolveInterfaceKey(remotingInvoker.getUrl());
+			URL url = super.getUrl();
+			String key = this.resolveInterfaceKey(url);
 			
 			// local
-			if(!this.loadLocal(key)) {
-				return remotingInvokers;
+			String localKey = this.loadLocal(key);
+			if(StringUtils.isBlank(localKey)) {
+				return super.list(invocation);
 			}
-			logger.info("======>>> 使用本地" + localHost + ":" + remotingInvoker.getUrl().getPort() //
-								+ "【" + remotingInvoker.getInterface() + "." + invocation.getMethodName() + "】... ...");
+			String port = localKey.substring(localKey.indexOf("$") + 1);
+			System.out.println(this.resolveReqLog(invocation, port));
 			// local start
-			if(cacheInvoker.containsKey(key)) {
-				Invoker<T> localInvoker = (Invoker<T>) cacheInvoker.get(key);
+			if(cacheInvoker.containsKey(localKey)) {
+				Invoker<T> localInvoker = (Invoker<T>) cacheInvoker.get(localKey);
 				return Arrays.asList(localInvoker);
 			}
 			
 			// TODO 默认先使用dubbo protocol了
 			Protocol protocol = ExtensionLoader.getExtensionLoader(Protocol.class).getExtension("dubbo");
-			Invoker<T> localInvoker = protocol.refer(remotingInvoker.getInterface(), //
-					remotingInvoker.getUrl().setHost(localHost).setPort(remotingInvoker.getUrl().getPort())); // 本地url
-			cacheInvoker.put(key, (Invoker<Object>)localInvoker);
+			Invoker<T> localInvoker = protocol.refer(super.getInterface(), //
+					url.setProtocol("dubbo").setPath(super.getInterface().getName()) //
+					.setHost(localHost).setPort(Integer.valueOf(port))); // 本地url
+			cacheInvoker.put(localKey, (Invoker<Object>)localInvoker);
 			return Arrays.asList(localInvoker);
 		}
 		
-		private boolean loadLocal(String key) {
+		private String loadLocal(String intertfaceKey) {
 			if(cacheLocalProviders.size() == 0) {
-				return false;
+				return "";
 			}
 			ConcurrentHashMap<String, FileContent> map = cacheLocalProviders;
 			for(String fileName : map.keySet()) {
 				FileContent fileContent = map.get(fileName);
-				if(fileContent.prop.contains(key)) {
-					romotingFileName.set(new Pair(key, fileName));
-					return true;
+				for(Object localKey : fileContent.prop.keySet()) {
+					if(String.valueOf(localKey).startsWith(intertfaceKey)) {
+						romotingFileName.set(new Pair(String.valueOf(localKey), fileName));
+						return String.valueOf(localKey);
+					}
 				}
 			}
-			return false;
+			return "";
 		}
 		
 		private String resolveInterfaceKey(URL url) {
 			String invokeInterface = url.getServiceInterface();
 			String group = url.getParameter(Constants.GROUP_KEY);
 			return StringUtils.isBlank(group)? invokeInterface: invokeInterface + "-" + group;
+		}
+		
+		private String resolveReqLog(Invocation invocation, String port) {
+			StringBuilder builder = new StringBuilder();
+			builder.append(">>>>> 使用本地provider, ")
+				   .append(localHost + ":" + port + ", ")
+				   .append(super.getInterface() + "." + invocation.getMethodName())
+				   .append("(");
+			Object[] args = invocation.getArguments();
+			// TODO 详细参数信息打印
+			Class<?>[] pts = invocation.getParameterTypes();
+			for(int i = 0; i < args.length; i++) {
+				builder.append(args[i] + "[" + pts[i].getName()+ "]");
+				if(i < args.length - 1) {
+					builder.append(",");
+				}
+			}
+			return builder.append(")").toString();
 		}
 
 	}
